@@ -26,29 +26,6 @@
 
 ## 🧭 Pipeline (high‑level)
 
-```mermaid
-flowchart LR
-  A[Input domain] --> B[Subdomains: assetfinder|subfinder|chaos|amass]
-  B --> C[dsieve (opt)]
-  C --> D[Resolve: shuffledns/massdns]
-  D --> E[dnsx JSON]
-  E --> F[httpx: tech, status, IP, CDN]
-  F --> G[tlsx: SAN harvest + diff]
-  G --> H[URLs: gau/gauplus + katana]
-  H --> I[hakrawler]
-  I --> J[linkfinder (JS endpoints)]
-  F --> K[Ports: naabu -> scheme-aware httpx]
-  K --> L[nmap (opt)]
-  F --> M[favirecon + mmh3 map]
-  F --> N[csprecon + heuristics]
-  F --> O[cariddi / cloakquest3r (opt)]
-  F --> P[External Intel APIs (opt)]
-  H --> Q[Secret grep (headers+bodies)]
-  H --> R[SSRF candidates (param scoring)]
-  R --> S[Payload fuzz (XSS/LFI/SQLi/SSTI/SSRF/RCE)]
-  S --> T[Scanners: nuclei/dalfox/kxss]
-```
-
 ---
 
 ## ⚙️ Installation
