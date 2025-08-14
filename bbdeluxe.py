@@ -94,7 +94,7 @@ async def run_cmd(cmd: str, input_lines: Optional[Iterable[str]] = None, cwd: Op
         out, err = await asyncio.wait_for(proc.communicate(data), timeout=timeout)
     except asyncio.TimeoutError:
         proc.kill(); return -1, [], f"[timeout] {cmd}"
-    return proc.returncode, out.decode(errors="replace").splitlines(), err.decode(errors="replace"])
+    return proc.returncode, out.decode(errors="replace").splitlines(), err.decode(errors="replace")
 
 def dedup_append(path: Path, lines: Iterable[str]) -> int:
     existing = set(read_lines(path))
