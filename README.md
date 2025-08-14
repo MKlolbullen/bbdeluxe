@@ -1,6 +1,6 @@
 
 
-# 🔥 *BBdeluxe* Bug Bounty Multi-Super-Tool Deluxe + Live UI
+# BBdeluxe - A 🔥 Bug Bounty Multi-Super-Tool Deluxe + Live UI
 
 Asset discovery → DNS/HTTP intel → URL & JS collection → Ports → Scanners → Grep intel → Fuzz → External intelligence → Live visualization.
 This repo fuses a heavy-hitting recon pipeline with a real-time dashboard. Think ProjectDiscovery vibes, but with a custom D3 live graph, Pandas-driven matrices, and Aquatone screenshots wired right into your workflow.
