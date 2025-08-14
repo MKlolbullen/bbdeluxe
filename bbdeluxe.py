@@ -997,6 +997,11 @@ def parse_args(argv=None):
     p.add_argument("--encode-payloads", type=int, default=2, help="URL-encode payloads N times (0,1,2) before sending")
 
     p.add_argument("--max-time", type=int, default=0, help="Global timeout in seconds (0=unlimited)")
+    p.add_argument("--live-ui", action="store_true", help="Start live D3/NetworkX UI server")
+    p.add_argument("--live-bind", default="127.0.0.1:8765", help="Bind host:port for the live UI (default: 127.0.0.1:8765)")
+    p.add_argument("--live-open", action="store_true", help="Open a browser to the live UI on start")
+    p.add_argument("--viz-html", action="store_true", help="Export static HTML graph at the end (viz_export.py)")
+
     return p.parse_args(argv)
 
 def welcome():
@@ -1054,6 +1059,26 @@ async def main(argv=None):
     grep_summary = target_dir / "grep_summary.json"
     ssrf_ndjson = target_dir / "ssrf_candidates.ndjson"
     ssrf_params_txt = target_dir / "ssrf_params.txt"
+
+    # --- Live UI server (optional) ---
+    live = None
+    if getattr(args, "live_ui", False):
+        try:
+            from bb_live import LiveService
+            live = LiveService(args.live_bind, target_dir)
+            live.start(open_browser=args.live_open)
+            live.watch_files(
+                dnsx=dnsx_file,
+                httpx=httpx_json_file,
+                naabu=naabu_json_file,
+                nuclei=(scan_dir / "nuclei.jsonl"),
+                dalfox=(scan_dir / "dalfox.txt"),
+                kxss=(scan_dir / "kxss.txt"),
+            )
+        except Exception as _e:
+            console.print(f"[yellow]Live UI init failed:[/] {_e}")
+    else:
+        live = None
 
     # External intel out dir
     extintel_dir = target_dir / "extintel"
@@ -1306,6 +1331,12 @@ async def main(argv=None):
         for label, pth in [("subs.txt", subs_file), ("alive_roots.txt", alive_roots_file), ("urls.txt", urls_file), ("js.txt", js_file)]:
             t.add_row(label, str(len(read_lines(pth))))
         console.print(t)
+        if live:
+            try:
+                live.stop()
+            except Exception:
+                pass
+
         console.print(f"\n[bold green]Done.[/] Total time: {int(time.time()-start)}s  →  {target_dir}")
 
     except KeyboardInterrupt:
