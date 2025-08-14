@@ -584,6 +584,25 @@ async def stage_scan(urls_file: Path, scan_dir: Path, interactsh_enabled: bool =
         n = write_lines(out_path, out); counts["lines"] += n; counts["tools"] += 1; console.log(f"[green]kxss[/] {n}")
     return counts
 
+
+async def stage_aquatone(alive_roots_file: Path, shots_dir: Path, concurrency: int = 4) -> int:
+    """Run aquatone on alive roots (if installed). Returns number of screenshots attempted."""
+    ensure_dir(shots_dir)
+    if not tool_exists("aquatone"):
+        console.log("[yellow]aquatone not installed; skipping.[/]")
+        return 0
+    roots = read_lines(alive_roots_file)
+    if not roots:
+        return 0
+    cmd = f'aquatone -ports xlarge -out "{shots_dir}" -scan-timeout 8000 -threads {max(1, concurrency)}'
+    rc, out, err = await run_cmd(cmd, input_lines=roots, timeout=7200)
+    if err.strip():
+        console.log(f"[yellow]aquatone stderr[/]\n{err.strip()}")
+    shots_path = Path(shots_dir) / "screenshots"
+    count = len(list(shots_path.glob("*.png"))) if shots_path.exists() else 0
+    console.log(f"[green]aquatone[/] screenshots {count} → {shots_path}")
+    return count
+
 # -------------------- Fuzzer (with budgets/proxies/sqlite) --------------------
 def init_cache(db_path: Path):
     con = sqlite3.connect(db_path); cur = con.cursor()
@@ -996,11 +1015,14 @@ def parse_args(argv=None):
     p.add_argument("--cache-db", default="", help="SQLite path to cache (url,payload,category) and skip repeats")
     p.add_argument("--encode-payloads", type=int, default=2, help="URL-encode payloads N times (0,1,2) before sending")
 
-    p.add_argument("--max-time", type=int, default=0, help="Global timeout in seconds (0=unlimited)")
-    p.add_argument("--live-ui", action="store_true", help="Start live D3/NetworkX UI server")
-    p.add_argument("--live-bind", default="127.0.0.1:8765", help="Bind host:port for the live UI (default: 127.0.0.1:8765)")
-    p.add_argument("--live-open", action="store_true", help="Open a browser to the live UI on start")
-    p.add_argument("--viz-html", action="store_true", help="Export static HTML graph at the end (viz_export.py)")
+    p.add_argument("--max-time", type=int, default=0, help="Global timeout in seconds (0=unlimited)")    p.add_argument("--live-ui", action="store_true", help="Start live dashboard (D3 + WS/SSE)")
+    p.add_argument("--live-bind", default="127.0.0.1:8765", help="Bind host:port for the live UI")
+    p.add_argument("--live-open", action="store_true", help="Open browser to the live UI")
+    p.add_argument("--viz-html", action="store_true", help="Export static HTML graph at the end")
+    p.add_argument("--live-mode", default="auto", choices=["auto","ws","sse","poll"], help="Live transport")
+    p.add_argument("--live-theme", default="dark", choices=["dark","light"], help="UI theme")
+    p.add_argument("--aquatone", action="store_true", help="Run aquatone screenshots for alive roots")
+    p.add_argument("--shots-dir", default="shots", help="Directory for screenshots (aquatone)")
 
     return p.parse_args(argv)
 
@@ -1062,10 +1084,10 @@ async def main(argv=None):
 
     # --- Live UI server (optional) ---
     live = None
-    if getattr(args, "live_ui", False):
+    if getattr(args, "live_ui", False) or getattr(args, "aquatone", False):
         try:
             from bb_live import LiveService
-            live = LiveService(args.live_bind, target_dir)
+            live = LiveService(args.live_bind, target_dir, mode=getattr(args, "live_mode", "auto"), theme=getattr(args, "live_theme", "dark"))
             live.start(open_browser=args.live_open)
             live.watch_files(
                 dnsx=dnsx_file,
@@ -1074,6 +1096,8 @@ async def main(argv=None):
                 nuclei=(scan_dir / "nuclei.jsonl"),
                 dalfox=(scan_dir / "dalfox.txt"),
                 kxss=(scan_dir / "kxss.txt"),
+                urls=urls_file,
+                shots_dir=(target_dir / args.shots_dir)
             )
         except Exception as _e:
             console.print(f"[yellow]Live UI init failed:[/] {_e}")
@@ -1124,7 +1148,10 @@ async def main(argv=None):
             console.rule("[bold]Stage 3: HTTPX tech[/]")
             await stage_probe_httpx(subs_file, alive_roots_file, httpx_json_file, proxy=args.proxy)
 
-            pre_subs = set(read_lines(subs_file))
+            
+            if args.aquatone:
+                await stage_aquatone(alive_roots_file, target_dir / args.shots_dir)
+pre_subs = set(read_lines(subs_file))
             if args.tlsx:
                 console.rule("[bold]Stage 3b: tlsx[/]")
                 t = await stage_tlsx(alive_roots_file, tlsx_out, tlsx_newsubs, pre_subs)
@@ -1133,7 +1160,10 @@ async def main(argv=None):
                     console.log("[cyan]httpx[/] probing new subs from TLS SANs")
                     await stage_probe_httpx(subs_file, alive_roots_file, httpx_json_file, proxy=args.proxy)
 
-            console.rule("[bold]Stage 4: URLs (gau/katana) + hakrawler[/]")
+            
+            if args.aquatone:
+                await stage_aquatone(alive_roots_file, target_dir / args.shots_dir)
+console.rule("[bold]Stage 4: URLs (gau/katana) + hakrawler[/]")
             await stage_urls(domain, subs_file, urls_file)
             await stage_hakrawler(alive_roots_file, urls_file)
 
@@ -1148,8 +1178,14 @@ async def main(argv=None):
                 if extra:
                     console.log(f"[cyan]httpx[/] probing {len(extra)} service-aware URLs")
                     await stage_probe_httpx(subs_file, alive_roots_file, httpx_json_file, extra_urls=extra, proxy=args.proxy)
-                    console.log("[cyan]httpx[/] scheme-fallback retry")
-                    await stage_probe_httpx(subs_file, alive_roots_file, httpx_json_file, extra_urls=flip_urls_scheme(extra), proxy=args.proxy)
+                    
+            if args.aquatone:
+                await stage_aquatone(alive_roots_file, target_dir / args.shots_dir)
+console.log("[cyan]httpx[/] scheme-fallback retry")
+                    await stage_probe_httpx(subs_file, alive_roots_file, httpx_json_file, extra_urls=flip_urls_scheme(extra)
+            if args.aquatone:
+                await stage_aquatone(alive_roots_file, target_dir / args.shots_dir)
+, proxy=args.proxy)
 
             if args.nmap:
                 console.rule("[bold]Stage 7: Nmap[/]")
