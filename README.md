@@ -28,8 +28,6 @@ This repo fuses a heavy-hitting recon pipeline with a real-time dashboard. Think
 
 🧭 Proxy-native: Everything can flow through Burp (e.g., --proxy http://127.0.0.1:8080).
 
-
-
 ---
 
 🖼️ Screens (example data)
@@ -57,11 +55,9 @@ brew install nmap
 brew install aquatone
 # Or see “Manual Go installs” below
 
-# 3) Run with live UI + screenshots
-python3 bbdeluxe.py -d example.com --dnsx --naabu --scan \
-  --proxy http://127.0.0.1:8080 \
-  --live-ui --live-bind 127.0.0.1:8765 --live-open \
-  --aquatone --shots-dir shots
+## Live UI
+
+Add --ui to start the embedded dashboard (binds to 127.0.0.1:8765, opens your browser):
 
 The dashboard opens at http://127.0.0.1:8765/ui (dark theme; toggle dark/light in the UI).
 WebSocket is served on port+1 automatically (fallback to SSE/poll if WS missing).
@@ -85,18 +81,7 @@ Screenshots from aquatone (served from shots/screenshots/*.png) mapped to hosts/
 
 ---
 
-🧩 Installation (detailed)
 
-1) Python packages
-
-requirements.txt already covers both bbdeluxe and bb_live:
-
-rich>=13.7
-requests>=2.31
-urllib3>=2.2
-pandas>=2.2
-networkx>=3.3
-websockets>=12.0
 
 2) External CLI tools (pick your stack)
 
@@ -107,7 +92,7 @@ brew install nmap
 brew install aquatone
 
 Manual Go installs (examples):
-
+```bash
 # ProjectDiscovery
 go install github.com/projectdiscovery/httpx/cmd/httpx@latest
 go install github.com/projectdiscovery/dnsx/cmd/dnsx@latest
@@ -134,6 +119,12 @@ go install github.com/ffuf/ffuf/v2@latest
 # Screenshots
 go install github.com/michenriksen/aquatone@latest
 
+
+```
+pipx install xsrfprobe
+pipx install xsstrike
+
+
 From source (examples):
 
 massdns: build from repo (C); make sure resolvers file is present.
@@ -150,43 +141,40 @@ dalfox, cariddi, csprecon, favirecon, cloakquest3r: follow their repos.
 
 ---
 
-🧪 Usage patterns
+## 🧪 Usage patterns
+
+Basic run:
+```
+python3 bbdeluxe.py -d example.com --dnsx --tlsx --naabu --scan --grep-intel --fuzz xss sqli lfi rce
+```
 
 Minimal live recon
 
 python3 bbdeluxe.py -d example.com --dnsx --naabu \
   --live-ui --live-open
 
-Full pipeline (URL + JS + scanning)
-
-python3 bbdeluxe.py -d example.com \
-  --dnsx --tlsx --naabu --scan \
-  --grep-intel --fuzz xss sqli lfi \
-  --live-ui --live-bind 0.0.0.0:8765 --live-open
+Full pipeline (URL + JS + scanning) + UI
+```bash
+python3 bbdeluxe.py -d example.com --dnsx --tlsx --naabu --scan --grep-intel --fuzz xss sqli lfi rce --ui
+```
 
 With Burp
 
 python3 bbdeluxe.py -d example.com \
   --proxy http://127.0.0.1:8080 \
-  --live-ui --aquatone --shots-dir shots
+  --ui --aquatone --shots-dir shots
 
-Output layout (typical)
+Artifacts written under:
 
-runs/<domain>/<timestamp>/
-  ├─ subs.txt
-  ├─ alive_roots.txt
-  ├─ urls.txt
-  ├─ dnsx.jsonl
-  ├─ httpx.jsonl
-  ├─ naabu.jsonl
-  ├─ scan/
-  │   ├─ nuclei.jsonl
-  │   ├─ dalfox.txt
-  │   └─ kxss.txt
-  ├─ shots/
-  │   └─ screenshots/*.png
-  ├─ intel_normalized.json
-  └─ intel.json
+runs/<domain>/<YYYYMMDD_HHMMSS>/
+  subs.txt
+  dnsx.jsonl
+  httpx.jsonl
+  naabu.jsonl
+  urls.txt
+  scan/nuclei.jsonl
+  ...
+
 
 
 ---
