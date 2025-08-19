@@ -979,7 +979,7 @@ async def stage_tlsx(hosts_file: Path, out_file: Path, new_subs_file: Path, pre_
 async def stage_urls(domain: str, subs_file: Path, urls_file: Path) -> Dict[str, int]:
     counts = {"tools": 0, "lines": 0}
     if tool_exists("gauplus"):
-        rc, out, err = await run_cmd(f"gauplus -d {domain} -subs --providers wayback,commoncrawl,otx  -b png,jpg,jpeg,gif,svg,woff,woff2,ttf,ico", timeout=600)
+        rc, out, err = await run_cmd(f"echo {domain} | gauplus -subs -providers wayback,commoncrawl,otx  -b png,jpg,jpeg,gif,svg,woff,woff2,ttf,ico", timeout=600)
         if err.strip(): console.log(f"[yellow]gauplus stderr[/]\n{err.strip()}")
         n = dedup_append(urls_file, out); counts["lines"] += n; counts["tools"] += 1; console.log(f"[green]gauplus[/] +{n}")
     elif tool_exists("gau"):
