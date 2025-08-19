@@ -31,6 +31,7 @@ This repo fuses a heavy-hitting recon pipeline with a real-time dashboard. Think
 ---
 
 🖼️ Screens (example data)
+<img width="3398" height="1420" alt="image" src="https://github.com/user-attachments/assets/6db8492e-9855-4790-a96a-546c78ad68fe" />
 
 
 D3 force-graph: hosts, URLs, IPs, ports, tech, filetypes, params, and vulns.
