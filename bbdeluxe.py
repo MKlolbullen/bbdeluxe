@@ -987,7 +987,7 @@ async def stage_urls(domain: str, subs_file: Path, urls_file: Path) -> Dict[str,
         if err.strip(): console.log(f"[yellow]gau stderr[/]\n{err.strip()}")
         n = dedup_append(urls_file, out); counts["lines"] += n; counts["tools"] += 1; console.log(f"[green]gau[/] +{n}")
     if tool_exists("katana"):
-        cmd = f"katana -silent -list {subs_file} -jc -jsl  -retry 2 -d 3  --no-sandbox -kf all" if subs_file.exists() else f"katana -silent -u https://{domain} -jc -jsl  -retry 2 -d 3 --no-sandbox -kf all"
+        cmd = f"katana -silent -list {subs_file} -jc -jsl  -retry 2 -d 3  -kf all" if subs_file.exists() else f"katana -silent -u https://{domain} -jc -jsl  -retry 2 -d 3 -kf all"
         rc, out, err = await run_cmd(cmd, timeout=900)
         if err.strip(): console.log(f"[yellow]katana stderr[/]\n{err.strip()}")
         n = dedup_append(urls_file, out); counts["lines"] += n; counts["tools"] += 1; console.log(f"[green]katana[/] +{n}")
