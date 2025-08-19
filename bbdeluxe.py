@@ -869,7 +869,7 @@ async def stage_subdomains(domain: str,  out_file: Path) -> Dict[str, int]:
     cmds = []
     if tool_exists("assetfinder"): cmds.append(f"assetfinder -subs-only {domain} || true")
     if tool_exists("subfinder"):   cmds.append(f"subfinder -silent -all -d {domain}  || true")
-    if tool_exists("chaos"):       cmds.append(f"chaos -silent -d {domain}  {('-key ' + os.getenv('CHAOS_KEY')) if os.getenv('CHAOS_KEY') else ''} | anew {subs_file} || true")
+    if tool_exists("chaos"):       cmds.append(f"chaos -silent -d {domain}  {('-key ' + os.getenv('CHAOS_KEY')) if os.getenv('CHAOS_KEY') else ''} || true")
     if tool_exists("amass"):       cmds.append(f"amass enum -passive -norecursive  -d {domain} || true")
     if not cmds: return {"tools": 0, "lines": 0}
 
